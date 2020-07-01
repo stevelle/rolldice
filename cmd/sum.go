@@ -29,6 +29,7 @@ import (
 // sumCmd represents the sum command
 var sumCmd = &cobra.Command{
 	Use:   "sum",
+	Aliases: []string {"total", "complex", "add"},
 	Short: "Roll an arbitrary combination of dice",
 	Long: `Roll any combination of dice. 
 
@@ -57,13 +58,14 @@ Notice the second dice set and the bonus set may be separated by a space.`,
 
 		sets := splitArgs(args)
 		for _, set := range sets {
+			// TODO collect the rolls to display with --verbose
 			rolls := lib.RollDice(set)
 			for _, v := range rolls {
 				sum += v
 			}
 		}
 
-		fmt.Printf("sum => %d\n", sum)
+		fmt.Printf("%d\n", sum)
 	},
 }
 
