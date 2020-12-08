@@ -58,11 +58,27 @@ Notice the second dice set and the bonus set may be separated by a space.`,
 
 		sets := splitArgs(args)
 		for _, set := range sets {
-			// TODO collect the rolls to display with --verbose
 			rolls := lib.RollDice(set)
+
+			if fumbledCriticalDie(rolls) {
+				lost := maxIn(rolls)
+				fmt.Printf("Fumble: -%d\n", lost)
+				// exclude the largest value and the fumble die
+				sum -= lost + 1
+			}
+
+			for last := lastOf(rolls); last == set.Sides; {
+				fmt.Printf("Blown up\n")
+				// add a bonus die
+				last = lib.Roll(set.Sides)
+				rolls = append(rolls, last)
+			}
+
 			for _, v := range rolls {
 				sum += v
 			}
+			// TODO format the rolls to display with --verbose
+			fmt.Println("Rolls: ", rolls)
 		}
 
 		fmt.Printf("%d\n", sum)
@@ -155,4 +171,25 @@ func estimateSets(parts []string) int {
 func fatal(msg string, param interface{}) {
 	os.Stderr.WriteString(fmt.Sprintf("ERROR: " + msg + "\n", param))
 	os.Exit(1)
+}
+
+// Return the last value
+func lastOf(values []int64) int64 {
+	return values[len(values)-1]
+}
+
+// is the critical die a '1'
+func fumbledCriticalDie(rolls []int64) bool {
+	return lastOf(rolls) == 1
+}
+
+// identify the largest value in a list
+func maxIn(values []int64) int64 {
+	maximum := int64(0)
+	for _, val := range values {
+		if val > maximum {
+			maximum = val
+		}
+	}
+	return maximum
 }
