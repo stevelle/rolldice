@@ -25,17 +25,17 @@ import (
 )
 
 type DiceSet struct {
-	dice int64
-	sides int64
-	bonus int64
+	Dice  int64
+	Sides int64
+	Bonus int64
 }
 
 func NewDiceSet(dice int64, sides int64) *DiceSet {
-	return &DiceSet{dice: dice, sides: sides, bonus: 0}
+	return &DiceSet{Dice: dice, Sides: sides, Bonus: 0}
 }
 
 func NewBonus(bonus int64) *DiceSet {
-	return &DiceSet{bonus: bonus}
+	return &DiceSet{Bonus: bonus}
 }
 
 func Roll(sides int64) int64 {
@@ -48,24 +48,24 @@ func Roll(sides int64) int64 {
 
 // Roll a DiceSet and return the results for each die, or bonus
 func RollDice(set *DiceSet) []int64 {
-	results := make([]int64, set.dice)
+	results := make([]int64, set.Dice)
 	for i := range results {
-		results[i] = Roll(set.sides)
+		results[i] = Roll(set.Sides)
 	}
 
-	if set.bonus != 0 {
-		results = append(results, set.bonus)
+	if set.Bonus != 0 {
+		results = append(results, set.Bonus)
 	}
 	return results
 }
 
 // Describe a DiceSet with the results it produced in a single line
 func Describe(set *DiceSet, r []int64) string {
-	if set.bonus != 0 {
-		return fmt.Sprintf("+%d\t=> [%d]", set.bonus, r[0])
+	if set.Bonus != 0 {
+		return fmt.Sprintf("+%d\t=> [%d]", set.Bonus, r[0])
 	}
 
-	return fmt.Sprintf("%dd%d\t%s=> []", set.dice, set.sides, strings.Join(formatInts(r), ", "))
+	return fmt.Sprintf("%dd%d\t%s=> []", set.Dice, set.Sides, strings.Join(formatInts(r), ", "))
 }
 
 // Convert a slice of ints to a slice of strings
