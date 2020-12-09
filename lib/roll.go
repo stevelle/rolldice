@@ -35,7 +35,7 @@ func NewDiceSet(dice int64, sides int64) *DiceSet {
 }
 
 func NewBonus(bonus int64) *DiceSet {
-	return &DiceSet{Bonus: bonus}
+	return &DiceSet{Dice: 0, Sides: 0, Bonus: bonus}
 }
 
 func Roll(sides int64) int64 {
@@ -52,17 +52,13 @@ func RollDice(set *DiceSet) []int64 {
 	for i := range results {
 		results[i] = Roll(set.Sides)
 	}
-
-	if set.Bonus != 0 {
-		results = append(results, set.Bonus)
-	}
 	return results
 }
 
 // Describe a DiceSet with the results it produced in a single line
 func Describe(set *DiceSet, r []int64) string {
 	if set.Bonus != 0 {
-		return fmt.Sprintf("+%d\t=> [%d]", set.Bonus, r[0])
+		return fmt.Sprintf("%dd%d+%d\t=> [%d]", set.Dice, set.Sides, set.Bonus, r[0])
 	}
 
 	return fmt.Sprintf("%dd%d\t%s=> []", set.Dice, set.Sides, strings.Join(formatInts(r), ", "))

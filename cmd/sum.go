@@ -79,8 +79,8 @@ Notice the second dice set and the bonus set may be separated by a space.`,
 			}
 			// TODO format the rolls to display with --verbose
 			fmt.Println("Rolls: ", rolls)
+			sum += set.Bonus
 		}
-
 		fmt.Printf("%d\n", sum)
 	},
 }
@@ -99,23 +99,26 @@ func init() {
       a bonus
  */
 func splitArgs(args []string) []*lib.DiceSet {
-	sets := make([]*lib.DiceSet, estimateSets(args))
-	i := 0
+	sets := make([]*lib.DiceSet, 0)
 	for _, part := range args {
-		for _, set := range strings.Split(part, "+") {
-			// 2 + 1d4 estimates as 3 segments, should only have 2, so slice sets down
-			if isBlank(set) {
-				sets = sets[:len(sets)-1]
+		for _, segment := range strings.Split(part, "+") {
+			// ignore blank segments
+			if isBlank(segment) {
 				continue
 			}
-			if strings.Contains(set, "D") {
-				sets[i] = parseDiceSet(set, "D")
-			} else if strings.Contains(set, "d") {
-				sets[i] = parseDiceSet(set, "d")
+			if strings.ContainsAny(segment, "Dd") {
+				// the segment represents a number of dice
+				sets = append(sets, parseDiceSet(segment, "d"))
 			} else {
-				sets[i] = lib.NewBonus(parsePosInt64(set))
+				// the segment represents a bonus
+				if len(sets) > 0 {
+					// add the bonus to the prior dice set
+					sets[len(sets)-1].Bonus += parsePosInt64(segment)
+				} else {
+					// this is the first dice set, create a standalone-bonus
+					sets = append(sets, lib.NewBonus(parsePosInt64(segment)))
+				}
 			}
-			i++
 		}
 	}
 	return sets
@@ -129,6 +132,7 @@ func isBlank(set string) bool {
 	Parse an expression into a DiceSet, given a delimiter
 
 	The delimiter separates the number of dice from the number of sides for those dice.
+	The expression and delimiter are treated case-insensitively.
 
 	Fatal errors resulting in an error message and an exit code of 1 include:
 		finding illegal characters (those not used to define a number) on either side of the separator
@@ -136,7 +140,7 @@ func isBlank(set string) bool {
 		finding more than one occurrence of the separator.
  */
 func parseDiceSet(expr string, sep string) *lib.DiceSet {
-	parts := strings.Split(expr, sep)
+	parts := strings.Split(strings.ToLower(expr), strings.ToLower(sep))
 	// TODO FUTURE? handle "d6" using default dice=1 and "3d" using default sides=6
  	if len(parts) != 2 {
 		fatal("Could not determine desired dice from \"s\"", expr)
@@ -156,15 +160,6 @@ func parsePosInt64(expr string) int64 {
 		fatal("Cannot operate against non-positive values like \"%d\"", parsed)
 	}
 	return parsed
-}
-
-// Estimate the number of DiceSets we will need
-func estimateSets(parts []string) int {
-	estimate := len(parts)
-	for _, a := range parts {
-		estimate += strings.Count(a, "+")
-	}
-	return estimate
 }
 
 // Print a formatted error to stderr and exit
