@@ -60,13 +60,14 @@ Notice the second dice set and the bonus set may be separated by a space.`,
 		for _, set := range sets {
 			rolls := lib.RollDice(set)
 
-			if fumbledCriticalDie(rolls) {
+			if fumbledWildDie(rolls) {
 				lost := maxIn(rolls)
 				fmt.Printf("Fumble: -%d\n", lost)
 				// exclude the largest value and the fumble die
 				sum -= lost + 1
 			}
 
+			// handle critical success on wild die
 			for last := lastOf(rolls); last == set.Sides; {
 				fmt.Printf("Blown up\n")
 				// add a bonus die
@@ -173,8 +174,8 @@ func lastOf(values []int64) int64 {
 	return values[len(values)-1]
 }
 
-// is the critical die a '1'
-func fumbledCriticalDie(rolls []int64) bool {
+// is the wild die a '1'
+func fumbledWildDie(rolls []int64) bool {
 	return lastOf(rolls) == 1
 }
 
