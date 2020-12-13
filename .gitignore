@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+main
 rolldice
 
 # Test binary, built with `go test -c`
