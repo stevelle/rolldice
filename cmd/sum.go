@@ -26,6 +26,11 @@ import (
 	"github.com/stevelle/rolldice/lib"
 )
 
+const Blank = ""
+const WildSeparator = "w"
+const DiceSeparator = "d"
+const PlusSeparator = "+"
+
 // sumCmd represents the sum command
 var sumCmd = &cobra.Command{
 	Use:   "sum",
@@ -42,6 +47,13 @@ with a plus '+'.
 Specify a fixed bonus set by specifying the bonus number just as you would
 for another set of dice. 
 
+Specify a 'w' instead of a 'd' if you want the final die to behave like "wild" die:
+	- When a 1 is rolled, the roll is considered a fumble. The fumbled die and the highest roll on the remaining dice are both subtracted
+	from the total
+	- When a max value is rolled, the roll is considered an open-ended success and
+	an extra die is rolled to add to the total. While extra dice continue to roll
+	the max possible value
+
 For example:
 
 2d8 will calculate the sum of d8 + d8 in the range of 2-16.
@@ -55,10 +67,9 @@ Notice the second dice set and the bonus set may be separated by a space.`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		sum := int64(0)
-
 		sets := splitArgs(args)
 		for _, set := range sets {
-			rolls := lib.RollDice(set)
+			rolls := set.Roll()
 
 			if fumbledWildDie(rolls) {
 				lost := maxIn(rolls)
@@ -67,14 +78,17 @@ Notice the second dice set and the bonus set may be separated by a space.`,
 				sum -= lost + 1
 			}
 
-			// handle critical success on wild die
-			for last := lastOf(rolls); last == set.Sides; {
-				fmt.Printf("Blown up\n")
-				// add a bonus die
-				last = lib.Roll(set.Sides)
-				rolls = append(rolls, last)
+			// handle open-ended success on wild die
+			if set.IsWild {
+				for last := lastOf(rolls); last == set.Sides; {
+					fmt.Printf("Blown up\n")
+					// add a bonus die
+					last = lib.Roll(set.Sides)
+					rolls = append(rolls, last)
+				}
 			}
 
+			// Calculate the sum for the DiceSet
 			for _, v := range rolls {
 				sum += v
 			}
@@ -84,10 +98,6 @@ Notice the second dice set and the bonus set may be separated by a space.`,
 		}
 		fmt.Printf("%d\n", sum)
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(sumCmd)
 }
 
 /*
@@ -102,16 +112,14 @@ func init() {
 func splitArgs(args []string) []*lib.DiceSet {
 	sets := make([]*lib.DiceSet, 0)
 	for _, part := range args {
-		for _, segment := range strings.Split(part, "+") {
+		for _, segment := range strings.Split(strings.ToLower(part), PlusSeparator) {
 			// ignore blank segments
 			if isBlank(segment) {
 				continue
 			}
-			if strings.ContainsAny(segment, "Dd") {
-				// the segment represents a number of dice
-				sets = append(sets, parseDiceSet(segment, "d"))
-			} else {
-				// the segment represents a bonus
+
+			separator := chooseSeparator(segment)
+			if isBlank(separator) { // the segment represents a bonus
 				if len(sets) > 0 {
 					// add the bonus to the prior dice set
 					sets[len(sets)-1].Bonus += parsePosInt64(segment)
@@ -119,14 +127,12 @@ func splitArgs(args []string) []*lib.DiceSet {
 					// this is the first dice set, create a standalone-bonus
 					sets = append(sets, lib.NewBonus(parsePosInt64(segment)))
 				}
+			} else { // the segments contains a set of dice
+				sets = append(sets, parseDiceSet(segment, separator))
 			}
 		}
 	}
 	return sets
-}
-
-func isBlank(set string) bool {
-	return len(strings.TrimSpace(strings.ReplaceAll(set, "+", ""))) == 0
 }
 
 /*
@@ -141,12 +147,12 @@ func isBlank(set string) bool {
 		finding more than one occurrence of the separator.
  */
 func parseDiceSet(expr string, sep string) *lib.DiceSet {
-	parts := strings.Split(strings.ToLower(expr), strings.ToLower(sep))
+	parts := strings.Split(strings.ToLower(expr), sep)
 	// TODO FUTURE? handle "d6" using default dice=1 and "3d" using default sides=6
  	if len(parts) != 2 {
 		fatal("Could not determine desired dice from \"s\"", expr)
 	}
-	set := lib.NewDiceSet(parsePosInt64(parts[0]), parsePosInt64(parts[1]))
+	set := lib.NewDiceSet(parsePosInt64(parts[0]), parsePosInt64(parts[1]), isWild(sep))
 	return set
 }
 
@@ -165,7 +171,7 @@ func parsePosInt64(expr string) int64 {
 
 // Print a formatted error to stderr and exit
 func fatal(msg string, param interface{}) {
-	os.Stderr.WriteString(fmt.Sprintf("ERROR: " + msg + "\n", param))
+	_, _ = os.Stderr.WriteString(fmt.Sprintf("ERROR: "+msg+"\n", param))
 	os.Exit(1)
 }
 
@@ -188,4 +194,25 @@ func maxIn(values []int64) int64 {
 		}
 	}
 	return maximum
+}
+
+func isWild(separator string) bool {
+	return separator == WildSeparator
+}
+
+func isBlank(set string) bool {
+	return len(strings.TrimSpace(strings.ReplaceAll(set, PlusSeparator, Blank))) == 0
+}
+
+func chooseSeparator(expr string) string {
+	if strings.Contains(expr, WildSeparator) {
+		return WildSeparator
+	} else if strings.Contains(expr, DiceSeparator) {
+		return DiceSeparator
+	}
+	return Blank
+}
+
+func init() {
+	rootCmd.AddCommand(sumCmd)
 }

@@ -28,16 +28,18 @@ type DiceSet struct {
 	Dice  int64
 	Sides int64
 	Bonus int64
+	IsWild bool
 }
 
-func NewDiceSet(dice int64, sides int64) *DiceSet {
-	return &DiceSet{Dice: dice, Sides: sides, Bonus: 0}
+func NewDiceSet(dice int64, sides int64, isWild bool) *DiceSet {
+	return &DiceSet{Dice: dice, Sides: sides, Bonus: 0, IsWild: isWild}
 }
 
 func NewBonus(bonus int64) *DiceSet {
-	return &DiceSet{Dice: 0, Sides: 0, Bonus: bonus}
+	return &DiceSet{Dice: 0, Sides: 0, Bonus: bonus, IsWild: false}
 }
 
+// Roll a single die with a given number of sides
 func Roll(sides int64) int64 {
 	value, err := rand.Int(rand.Reader, big.NewInt(sides))
 	if err != nil {
@@ -47,10 +49,10 @@ func Roll(sides int64) int64 {
 }
 
 // Roll a DiceSet and return the results for each die, or bonus
-func RollDice(set *DiceSet) []int64 {
-	results := make([]int64, set.Dice)
+func (d *DiceSet) Roll() []int64 {
+	results := make([]int64, d.Dice)
 	for i := range results {
-		results[i] = Roll(set.Sides)
+		results[i] = Roll(d.Sides)
 	}
 	return results
 }
