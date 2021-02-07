@@ -71,15 +71,15 @@ Notice the second dice set and the bonus set may be separated by a space.`,
 		for _, set := range sets {
 			rolls := set.Roll()
 
-			if fumbledWildDie(rolls) {
-				lost := maxIn(rolls)
-				fmt.Printf("Fumble: -%d\n", lost)
-				// exclude the largest value and the fumble die
-				sum -= lost + 1
-			}
-
 			// handle open-ended success on wild die
 			if set.IsWild {
+				if fumbledWildDie(rolls) {
+					lost := maxIn(rolls)
+					fmt.Printf("Fumble: -%d\n", lost)
+					// exclude the largest value
+					sum -= lost
+				}
+
 				for last := lastOf(rolls); last == set.Sides; {
 					fmt.Printf("Blown up\n")
 					// add a bonus die
